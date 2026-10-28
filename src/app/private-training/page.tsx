@@ -42,8 +42,8 @@ export default function Page() {
             <i>what you need next.</i>
           </h2>
           <p>
-            Your assessment helps Maria prepare a draft agenda. She reviews it
-            before your session, and you confirm the priorities together.
+            Your assessment helps Maria understand your starting point. She
+            confirms the priorities with you before your session.
           </p>
         </div>
         <div>

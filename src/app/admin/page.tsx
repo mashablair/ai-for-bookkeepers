@@ -60,8 +60,8 @@ export default async function Page({
           Could not load records. Check database setup and permissions.
         </p>
       )}
-      <h2>Consultation requests</h2>
-      {!leads?.length && <p>No consultation requests for this view.</p>}
+      <h2>Requests</h2>
+      {!leads?.length && <p>No requests for this view.</p>}
       <div className="admin-grid">
         {leads?.map((lead) => (
           <article key={lead.id}>
@@ -116,8 +116,9 @@ export default async function Page({
       </div>
       <h2 style={{ marginTop: 80 }}>Completed assessments</h2>
       <p className="note">
-        Anonymous assessments are shown without identifying information unless
-        linked to a consultation request.
+        Assessments appear here with the answers used to prepare what you send.
+        A name and email appear on the request when the visitor asked to receive
+        it.
       </p>
       {assessments?.map((a) => (
         <details key={a.id}>

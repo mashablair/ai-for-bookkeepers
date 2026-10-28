@@ -8,7 +8,7 @@ grant execute on function public.is_admin() to authenticated;
 create table public.assessments(id uuid primary key default gen_random_uuid(),request_id uuid unique not null,created_at timestamptz not null default now(),answers jsonb not null,summary jsonb not null,referral text not null default 'organic');
 create table public.leads(id uuid primary key default gen_random_uuid(),request_id uuid unique not null,created_at timestamptz not null default now(),name text not null,email text not null,practice text not null,format text not null,priorities text not null,consent_at timestamptz not null,referral text not null default 'organic',assessment_id uuid references public.assessments(id) on delete set null,status text not null default 'New' check(status in ('New','Contacted','Scheduled','Completed','Closed')));
 create table public.agendas(id uuid primary key default gen_random_uuid(),lead_id uuid not null unique references public.leads(id) on delete cascade,content text not null,reviewed boolean not null default false,updated_at timestamptz not null default now());
-create table public.events(id uuid primary key default gen_random_uuid(),created_at timestamptz not null default now(),event text not null check(event in ('assessment_start','assessment_complete','consultation_request','workshop_request')),referral text not null);
+create table public.events(id uuid primary key default gen_random_uuid(),created_at timestamptz not null default now(),event text not null check(event in ('assessment_start','assessment_complete','consultation_request','workshop_request','assessment_delivery')),referral text not null);
 create table public.rate_limits(key text primary key,count int not null default 1,created_at timestamptz not null default now());
 alter table public.assessments enable row level security;
 alter table public.leads enable row level security;
@@ -22,7 +22,7 @@ create policy admin_agendas on public.agendas for all to authenticated using(pub
 create policy admin_events on public.events for select to authenticated using(public.is_admin());
 create function public.record_conversion() returns trigger language plpgsql security definer set search_path='' as $$ begin
 if TG_TABLE_NAME='assessments' then insert into public.events(event,referral) values('assessment_complete',new.referral);
-else insert into public.events(event,referral) values(case when new.format='Team workshop' then 'workshop_request' else 'consultation_request' end,new.referral);end if;return new;end $$;
+else insert into public.events(event,referral) values(case when new.format='Team workshop' then 'workshop_request' when new.format='Free assessment' then 'assessment_delivery' else 'consultation_request' end,new.referral);end if;return new;end $$;
 create trigger assessment_conversion after insert on public.assessments for each row execute function public.record_conversion();
 create trigger lead_conversion after insert on public.leads for each row execute function public.record_conversion();
 create function public.take_rate_limit(p_key text,p_limit int) returns boolean language plpgsql security definer set search_path='' as $$declare n int;begin

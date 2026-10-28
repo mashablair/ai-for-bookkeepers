@@ -1,12 +1,16 @@
 import { configured, database } from "@/lib/supabase";
 import { body, checkOrigin, assessmentOwner } from "@/lib/security";
-import { leadSchema } from "@/lib/validation";
+import { deliverySchema, leadSchema } from "@/lib/validation";
+import { z } from "zod";
 import { referral } from "@/lib/assessment";
 import { rateLimit, failure } from "@/lib/api";
 export async function POST(request: Request) {
   try {
     checkOrigin(request);
-    const input = leadSchema.parse(await body(request));
+    const input = z
+      .union([deliverySchema, leadSchema])
+      .parse(await body(request));
+    const delivery = "intent" in input;
     if (
       Date.now() - input.started < 2500 ||
       Date.now() - input.started > 86400000
@@ -18,8 +22,9 @@ export async function POST(request: Request) {
     if (!configured())
       return Response.json(
         {
-          error:
-            "Consultation requests are not connected yet. Your request has not been sent. Please try again once the service is available.",
+          error: delivery
+            ? "Assessment requests are not connected yet. Your request has not been sent. Please try again once the service is available."
+            : "Consultation requests are not connected yet. Your request has not been sent. Please try again once the service is available.",
         },
         { status: 503 },
       );
@@ -40,9 +45,11 @@ export async function POST(request: Request) {
     const { error } = await db.from("leads").insert({
       name: input.name,
       email: input.email,
-      practice: input.practice,
-      format: input.format,
-      priorities: input.priorities,
+      practice: delivery ? "Not provided" : input.practice,
+      format: delivery ? "Free assessment" : input.format,
+      priorities: delivery
+        ? "Please send the free assessment."
+        : input.priorities,
       consent_at: new Date().toISOString(),
       referral: source,
       assessment_id: assessmentId,

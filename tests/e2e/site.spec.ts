@@ -49,7 +49,7 @@ test("public pages, themes, accessibility and responsive layout", async ({
   });
 });
 for (const tool of ["Neither yet", "Both"])
-  test(`${tool} completes assessment without contact capture`, async ({
+  test(`${tool} finishes with a request to email the free assessment`, async ({
     page,
   }) => {
     await page.goto("/assessment?ref=anna");
@@ -58,7 +58,9 @@ for (const tool of ["Neither yet", "Both"])
     for (let i = 0; i < 20; i++) {
       if (page.url().endsWith("/results")) break;
       await page.getByRole("radio").first().check();
-      const end = page.getByRole("button", { name: "See my results" });
+      const end = page.getByRole("button", {
+        name: "Get my free assessment",
+      });
       if (await end.isVisible()) {
         await end.click();
         break;
@@ -67,21 +69,25 @@ for (const tool of ["Neither yet", "Both"])
     }
     await expect(page).toHaveURL(/\/results$/);
     await expect(
-      page.getByRole("heading", { name: "Your capability map." }),
+      page.getByRole("heading", { name: /Maria will/ }),
     ).toBeVisible();
     expect(await page.evaluate(() => sessionStorage.getItem("referral"))).toBe(
       "anna",
     );
-    await expect(
-      page.getByText("have not been saved", { exact: false }),
-    ).toBeVisible();
     const scan = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa"])
       .analyze();
     expect(scan.violations).toEqual([]);
+    await page.getByLabel("Name", { exact: true }).fill("Test Person");
+    await page.getByLabel("Email", { exact: true }).fill("test@example.com");
+    await page.getByRole("checkbox").check();
+    await page.waitForTimeout(2600);
     await page
-      .getByRole("link", { name: "Request Personalized Training", exact: true })
+      .getByRole("button", { name: "Send me my free assessment" })
       .click();
+    await expect(page.locator("p[role=alert]")).toContainText(
+      "has not been sent",
+    );
     expect(await page.evaluate(() => sessionStorage.getItem("referral"))).toBe(
       "anna",
     );

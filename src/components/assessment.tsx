@@ -175,17 +175,16 @@ export function Assessment() {
           )}
           <button className="button" disabled={busy || !ready} onClick={next}>
             {busy
-              ? "Preparing your results…"
+              ? "Saving your assessment…"
               : step === qs.length - 1
-                ? "See my results"
+                ? "Get my free assessment"
                 : "Continue →"}
           </button>
         </div>
         <p className="note">
           Please never enter client records, credentials or confidential
-          financial information. Your answers are used to prepare these results
-          and, when connected, saved for Maria to review. No contact details are
-          required.
+          financial information. At the end, leave your name and email and we
+          will send your free assessment.
         </p>
       </div>
     </div>

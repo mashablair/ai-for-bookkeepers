@@ -22,7 +22,7 @@ export function CTA() {
           </Link>
         </div>
         <p className="note">
-          No account. No payment. Results without an email address.
+          No account. No payment. We’ll email your free assessment.
         </p>
       </div>
     </section>
@@ -38,8 +38,8 @@ export const faqs = [
     "Your answers help identify what you already know. If you use Projects, we look at your instructions, sources and workflows so training can focus on the next useful skill.",
   ],
   [
-    "Do I have to book training to see my results?",
-    "No. Your strengths, potential gaps and suggested priorities are free to view. Sharing contact details and requesting training are optional.",
+    "How do I receive my free assessment?",
+    "Finish the questions, then leave your name and email. We’ll send your free assessment to that address. Training is optional, and nothing is booked from the form.",
   ],
   [
     "Will I need to share client records?",

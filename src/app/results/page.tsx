@@ -1,8 +1,8 @@
 import { Results } from "@/components/results";
 import { meta } from "@/lib/metadata";
 export const metadata = meta(
-  "Your assessment results",
-  "Your personalized AI learning guide.",
+  "Send me my free assessment",
+  "Leave your name and email after the assessment, and we will send your free assessment.",
   "/results",
   true,
 );

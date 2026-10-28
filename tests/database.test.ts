@@ -32,6 +32,17 @@ test("migration, real PostgreSQL RLS, persistence, attribution and transactional
       ).rows.length,
       1,
     );
+    await db.query(
+      `insert into public.leads(request_id,name,email,practice,format,priorities,consent_at,referral) values(gen_random_uuid(),'Reader','reader@example.invalid','Not provided','Free assessment','Please send the free assessment.',now(),'organic')`,
+    );
+    assert.equal(
+      (
+        await db.query<{ event: string }>(
+          "select event from public.events where event='assessment_delivery'",
+        )
+      ).rows.length,
+      1,
+    );
     await db.exec("set role anon");
     await assert.rejects(
       () => db.query("select * from public.leads"),
@@ -57,7 +68,7 @@ test("migration, real PostgreSQL RLS, persistence, attribution and transactional
     await db.query("select set_config('request.jwt.claim.sub',$1,false)", [
       admin,
     ]);
-    assert.equal((await db.query("select * from public.leads")).rows.length, 1);
+    assert.equal((await db.query("select * from public.leads")).rows.length, 2);
     await db.query("update public.leads set status='Contacted' where id=$1", [
       lead.rows[0].id,
     ]);
@@ -72,7 +83,7 @@ test("migration, real PostgreSQL RLS, persistence, attribution and transactional
     await db.exec("reset role");
     assert.equal(
       (await db.query("select * from public.events")).rows.length,
-      2,
+      3,
     );
     const limit = await db.query<{ allowed: boolean }>(
       "select public.take_rate_limit('test',1) as allowed",

@@ -24,7 +24,6 @@ const checks = {
   NEXT_PUBLIC_SUPABASE_ANON_KEY: (v) => !!v,
   SUPABASE_SERVICE_ROLE_KEY: (v) => !!v,
   SESSION_SECRET: (v) => v?.length >= 32,
-  OPENAI_API_KEY: (v) => !!v,
 };
 let missing = 0;
 for (const [key, validate] of Object.entries(checks)) {

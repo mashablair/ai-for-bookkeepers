@@ -15,17 +15,17 @@ export default function Page() {
       <h2>What this service collects</h2>
       <p>
         The assessment collects your selected AI tools, self-reported skills,
-        chosen work priorities and desired outcomes. It does not ask for your
-        name or email. A consultation request collects your name, email,
-        practice type, preferred training format and the priorities you choose
-        to share.
+        chosen work priorities and desired outcomes. At the end it asks for
+        your name and email so we can send your free assessment. A consultation
+        or workshop request also collects your practice type, preferred
+        training format and the priorities you choose to share.
       </p>
       <h2>How information is used</h2>
       <p>
-        Assessment responses produce your learning guide. When database storage
-        is configured, responses are saved so Maria can review them. If you
-        subsequently request training from the same browser, an essential,
-        signed cookie links your assessment to your request for up to 24 hours.
+        Your answers are saved so Maria can prepare the free assessment she
+        sends you. If you leave your name and email in the same browser, an
+        essential, signed cookie links those answers to your request for up to
+        24 hours. The same link is used if you later request training.
       </p>
       <p>
         Contact information is used to respond and prepare training. Please do
@@ -36,14 +36,13 @@ export default function Page() {
       <p>
         The configured service uses Supabase for database storage and
         administrator authentication, and Cloudflare for hosting when deployed.
-        Maria can request an OpenAI-generated draft agenda. Only structured
-        assessment choices are sent for that draft; your name, email and
-        free-text inquiry are excluded. Drafts require Maria’s review.
+        Maria sends the free assessment herself. Your answers are not sent to
+        an AI service to generate it.
       </p>
       <h2>Browser storage and measurement</h2>
       <p>
-        Your theme preference is remembered locally. Assessment drafts, results
-        and the first referral source are stored for the browser tab’s session.
+        Your theme preference is remembered locally. Assessment drafts and the
+        first referral source are stored for the browser tab’s session.
         A referral label, such as “anna,” is saved with relevant records. No
         advertising pixels or cross-site tracking are included.
       </p>
@@ -56,7 +55,7 @@ export default function Page() {
       </p>
       <h2>Your choices</h2>
       <p>
-        You can view results without providing contact information. Training
+        A name and email are required to receive the free assessment. Training
         requests are optional. Clear your browser’s site data to remove local
         preferences and assessment data. To request access, correction or
         deletion of server-held information, use the{" "}

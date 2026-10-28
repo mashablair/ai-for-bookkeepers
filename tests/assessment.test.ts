@@ -9,7 +9,7 @@ import {
   referral,
   Answers,
 } from "../src/lib/assessment";
-import { leadSchema } from "../src/lib/validation";
+import { deliverySchema, leadSchema } from "../src/lib/validation";
 function complete(tools: string, projects = "Yes, I use them regularly") {
   const a: Answers = { tools, projects };
   for (const q of questions) {
@@ -101,4 +101,28 @@ test("lead validation rejects spam, missing consent and invalid email", () => {
     { priorities: "" },
   ])
     assert(!leadSchema.safeParse({ ...lead, ...patch }).success);
+  assert(
+    deliverySchema.safeParse({
+      intent: "assessment",
+      name: lead.name,
+      email: lead.email,
+      consent: true,
+      website: "",
+      started: lead.started,
+      requestId: lead.requestId,
+      referral: "anna",
+    }).success,
+  );
+  assert(
+    !deliverySchema.safeParse({
+      intent: "assessment",
+      name: "A",
+      email: lead.email,
+      consent: true,
+      website: "",
+      started: lead.started,
+      requestId: lead.requestId,
+      referral: "anna",
+    }).success,
+  );
 });

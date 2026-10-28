@@ -66,7 +66,7 @@ export default function Home() {
             </Link>
           </div>
           <p className="note">
-            Designed for 5–7 minutes · No sign-up · Free results
+            Designed for 5–7 minutes · We’ll email your free assessment
           </p>
         </div>
       </section>
@@ -162,13 +162,13 @@ export default function Home() {
             ],
             [
               "Two",
-              "Understand",
-              "See your strengths, potential gaps and suggested priorities.",
+              "Share",
+              "Leave your name and email so we know where to send it.",
             ],
             [
               "Three",
-              "Choose",
-              "Use your results independently, or request personal guidance.",
+              "Receive",
+              "We’ll send your free assessment from the answers you gave.",
             ],
             [
               "Four",

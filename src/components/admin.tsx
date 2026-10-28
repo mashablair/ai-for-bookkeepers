@@ -64,7 +64,7 @@ export function LeadEditor({
   const [reviewed, setReviewed] = useState(initialReviewed);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
-  async function action(kind: "status" | "save" | "generate") {
+  async function action(kind: "status" | "save") {
     setBusy(true);
     setMessage("");
     try {
@@ -78,21 +78,12 @@ export function LeadEditor({
             status,
             content: agenda,
             reviewed,
-            action: kind,
           }),
         },
       );
       const d = await r.json();
       if (!r.ok) throw new Error(d.error);
-      if (d.content) {
-        setAgenda(d.content);
-        setReviewed(false);
-      }
-      setMessage(
-        kind === "generate"
-          ? "Draft generated. Review and edit before use."
-          : "Changes saved.",
-      );
+      setMessage("Changes saved.");
     } catch (e) {
       setMessage(e instanceof Error ? e.message : "Unable to save.");
     } finally {
@@ -116,13 +107,13 @@ export function LeadEditor({
       >
         Save status
       </button>
-      <h3>Training agenda</h3>
+      <h3>Notes for the assessment you’ll send</h3>
       <p className="note">
-        Draft only. Generation sends structured assessment choices, never name,
-        email or free-text inquiry. Maria must review before use.
+        Write what you plan to send. Nothing here is generated or emailed
+        automatically.
       </p>
       <label className="field">
-        Editable agenda
+        Your notes
         <textarea
           value={agenda}
           rows={12}
@@ -139,22 +130,15 @@ export function LeadEditor({
           checked={reviewed}
           onChange={(e) => setReviewed(e.target.checked)}
         />
-        I have reviewed this agenda for training.
+        I have reviewed these notes.
       </label>
       <div className="actions">
-        <button
-          className="button"
-          disabled={busy}
-          onClick={() => action("generate")}
-        >
-          {busy ? "Working…" : agenda ? "Regenerate draft" : "Generate draft"}
-        </button>
         <button
           className="button outline"
           disabled={busy || !agenda.trim()}
           onClick={() => action("save")}
         >
-          Save agenda
+          Save notes
         </button>
       </div>
       {message && (
