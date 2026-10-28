@@ -30,3 +30,11 @@ OpenNext warns that Next.js Node proxy support is experimental on Cloudflare. Ve
 Local production performance measurements are recorded in `local-performance.json`. They use unthrottled local Chrome and do not establish field Core Web Vitals or real mobile-network performance. No INP claim is made.
 
 The public privacy policy is explicitly a review draft. Confirm retention, privacy contact and processor arrangements before launch. No public publication has occurred.
+
+## Follow-up hardening — Supabase retained
+
+Owner confirmed that Supabase should remain the backend. No D1 code or database changes were made.
+
+The suite now includes 16 tests, including signed assessment-cookie tampering/expiry, malformed Unicode signatures, and byte-bounded JSON requests without Content-Length. All pass. Consultation requests tolerate a deleted previously linked assessment without a foreign-key failure. Session configuration rejects signing secrets shorter than 32 characters.
+
+Created ignored local configuration with a securely generated signing secret. `npm run check:config` reports names and readiness only; Supabase credentials and the OpenAI API key remain missing. The local preview is intentionally left running for owner review.

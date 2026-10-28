@@ -8,7 +8,9 @@
     "start": "next start --hostname 127.0.0.1",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test tests/*.test.ts",
-    "build:cloudflare": "opennextjs-cloudflare build"
+    "build:cloudflare": "opennextjs-cloudflare build",
+    "check:config": "node scripts/check-config.mjs",
+    "test:e2e": "playwright test --workers=2"
   },
   "dependencies": {
     "@fontsource/cormorant-garamond": "^5.3.0",

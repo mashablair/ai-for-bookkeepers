@@ -25,29 +25,29 @@ export async function POST(request: Request) {
       );
     await rateLimit(request, "lead", 6);
     const db = database();
-    const assessmentId = await assessmentOwner();
+    let assessmentId = await assessmentOwner();
     let source = referral(input.referral);
     if (assessmentId) {
-      const { data } = await db
+      const { data, error: lookupError } = await db
         .from("assessments")
         .select("referral")
         .eq("id", assessmentId)
         .single();
+      if (lookupError && lookupError.code !== "PGRST116") throw lookupError;
       if (data) source = data.referral;
+      else assessmentId = null;
     }
-    const { error } = await db
-      .from("leads")
-      .insert({
-        name: input.name,
-        email: input.email,
-        practice: input.practice,
-        format: input.format,
-        priorities: input.priorities,
-        consent_at: new Date().toISOString(),
-        referral: source,
-        assessment_id: assessmentId,
-        request_id: input.requestId,
-      });
+    const { error } = await db.from("leads").insert({
+      name: input.name,
+      email: input.email,
+      practice: input.practice,
+      format: input.format,
+      priorities: input.priorities,
+      consent_at: new Date().toISOString(),
+      referral: source,
+      assessment_id: assessmentId,
+      request_id: input.requestId,
+    });
     if (error && error.code !== "23505") throw error;
     return Response.json({ ok: true });
   } catch (e) {

@@ -71,3 +71,9 @@ OpenNext builds `.open-next/worker.js` and static assets. `wrangler.jsonc` has `
 Supabase project/keys and administrator account; OpenAI key; Cloudflare account and an Access-protected preview hostname; final domain; privacy contact and retention policy. Live Supabase login, network persistence and real OpenAI generation remain unverified until credentials are configured. No GitHub repository was created.
 
 No online payments, calendar booking, outbound lead emails, fabricated testimonials, certification claims or promised savings are included. Lead notifications, retention automation and additional customer research are sensible follow-ups after the core connected journey is verified.
+
+## Configuration readiness
+
+The chosen backend remains **Supabase**, with Cloudflare hosting. No D1 migration is planned and no access to `dating-goddess-db` is needed.
+
+Run `npm run check:config` to check required setting presence without printing credentials. A local ignored `.env.local` can hold these settings; never share or commit it. The existing local setup includes a generated session signing secret. Supply the Supabase project URL, anon key and service-role key, then OpenAI API key, using your local environment file or a secret manager. The migration and allowlist still need to be applied in that project's dashboard.
