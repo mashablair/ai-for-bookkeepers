@@ -1,0 +1,19 @@
+{
+  "note": "Local production Chrome, no CPU/network throttling. Not field Core Web Vitals; INP not measured.",
+  "reports": [
+    {
+      "viewport": "desktop",
+      "lcp": 244,
+      "cls": 0.0027531913097993826,
+      "domContentLoaded": 189.20000004768372,
+      "transferBytes": 323078
+    },
+    {
+      "viewport": "mobile",
+      "lcp": 72,
+      "cls": 0,
+      "domContentLoaded": 29,
+      "transferBytes": 289108
+    }
+  ]
+}

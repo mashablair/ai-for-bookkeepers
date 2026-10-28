@@ -26,3 +26,7 @@ The supplied no-route Worker configuration is a preparation artifact, not a clai
 8. Measure production performance on the actual host and mobile network; local timings do not establish field Core Web Vitals.
 
 Only after those checks and Maria’s explicit approval should the site receive a public route.
+
+## Adapter compatibility note
+
+The final OpenNext build succeeds with Next.js 16.4.3 and @opennextjs/cloudflare 1.20.14. OpenNext emits a warning that Next.js Node.js proxy/middleware support is experimental on Cloudflare. `src/proxy.ts` refreshes administrator sessions; page and API authorization do not rely on it. Verify refresh and cookie handling on the Access-protected Worker before public launch. If the adapter has not stabilized this path, use a supported session-refresh deployment pattern or a fully supported Next.js host; do not treat the bundle build as live runtime verification.
