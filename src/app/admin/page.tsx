@@ -42,7 +42,7 @@ export default async function Page({
         </div>
         <Logout />
       </div>
-      <form className="actions">
+      <form className="admin-filter">
         <label className="field">
           Filter referral source
           <input
@@ -52,8 +52,10 @@ export default async function Page({
             maxLength={40}
           />
         </label>
-        <button className="button">Apply filter</button>
-        <a href="/admin">Clear</a>
+        <div className="admin-filter-controls">
+          <button className="button">Apply filter</button>
+          <a href="/admin">Clear</a>
+        </div>
       </form>
       {(error || assessmentError) && (
         <p role="alert" className="error">

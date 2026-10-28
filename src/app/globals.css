@@ -191,6 +191,33 @@ nav a:hover {
   gap: 14px;
   flex-wrap: wrap;
   margin: 30px 0;
+  align-items: center;
+}
+.actions .field {
+  margin-bottom: 0;
+  flex: 1 1 240px;
+  max-width: 360px;
+}
+.actions .button {
+  align-self: center;
+  flex: 0 0 auto;
+}
+.admin-filter {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 30px 0;
+}
+.admin-filter .field {
+  margin: 0;
+  flex: 1 1 240px;
+  max-width: 360px;
+}
+.admin-filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 .button {
   display: inline-flex;
@@ -613,9 +640,6 @@ th {
   }
   .assessment-sidebar p {
     display: none;
-  }
-  .actions .button {
-    flex-grow: 1;
   }
   legend {
     font-size: 36px;
