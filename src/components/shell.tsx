@@ -57,7 +57,9 @@ export function Footer() {
         <div className="footer-links">
           <Link href="/contact">Contact</Link>
           <Link href="/privacy">Privacy</Link>
-          <Link href="/admin">Consultant login</Link>
+          <Link href="/admin" className="admin-login">
+            Admin login
+          </Link>
         </div>
       </div>
     </footer>

@@ -379,6 +379,14 @@ footer {
   display: flex;
   gap: 22px;
 }
+.admin-login {
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
 .skip {
   position: absolute;
   left: 20px;
