@@ -1,10 +1,41 @@
 # AI for Bookkeepers
 
-A Next.js App Router application for Maria Blair’s assessment-informed AI training service. Built locally; **not publicly deployed**.
+**An adaptive skills assessment and consultant workspace for practical AI training.**
+
+Next.js · React · TypeScript · Supabase · Cloudflare Workers
+
+This application turns a broad question, “How could AI help my bookkeeping practice?”, into a structured training conversation. Visitors follow an assessment tailored to their experience, request a personally reviewed assessment or training session, and the consultant reviews the answers and prepares workshop notes in a protected workspace.
+
+The project focuses on product-oriented front-end engineering: conditional form flows, clear feedback, accessible controls, server-side validation, and the connection between a public customer journey and an administrator’s workflow.
+
+## Explore the product
+
+| Area | What it does |
+| --- | --- |
+| Marketing pages | Introduces private training and team workshops with a responsive editorial layout and persistent light/dark themes. |
+| Adaptive assessment | Adjusts questions to a visitor’s tools and experience, removes answers that no longer apply, and retains an in-progress draft in the current tab. |
+| Assessment request | Collects consent and contact details after the questionnaire for personal review and follow-up. |
+| Consultant workspace | Lists requests and assessments, filters by referral source, updates lead status, and saves manually written, reviewed workshop notes. |
+| Measurement | Associates assessments with later requests and records conversion events after successful database inserts. |
+
+**Current workflow:** assessment summaries are deterministic, not AI-generated. The visitor-facing results page requests personal review; it does not display an automatically generated report. Workshop notes are written and saved by the consultant. The current application does not generate agendas with an LLM or automatically email assessment reports. The presence of an OpenAI package in the dependency list is not an implemented AI integration.
+
+There is no online payment or calendar-booking flow. A form submission requests follow-up; it does not book or charge for training.
+
+## Engineering highlights
+
+- **One conditional question model:** the UI and server use shared assessment rules, including removal of stale answers when the visitor changes their path.
+- **Accessible interaction design:** semantic fieldsets and controls, focus movement between questions, visible errors and progress, responsive layouts, and browser tests with axe checks.
+- **Explicit failure states:** without backend configuration, a visitor can explore the assessment, but contact submissions report that they were not sent rather than displaying a false success.
+- **Layered authorization:** Supabase Auth plus an administrator allowlist; private pages and API handlers authorize independently of session-refresh middleware.
+- **Protected request handling:** schema validation, origin checks, bounded request bodies, honeypot/timing checks, and rate limits. Anonymous clients have no direct application-table grants.
+- **Retry-aware measurement:** unique request IDs and database-triggered conversion events avoid counting form clicks or repeated submissions as new conversions.
+
+These are implementation features, not a claim of a completed independent security audit or accessibility certification.
 
 ## Run locally
 
-Requires Node.js 22+ and npm.
+Requires **Node.js 22+** and npm.
 
 ```sh
 npm ci
@@ -12,68 +43,67 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open http://127.0.0.1:3000. Set `NEXT_PUBLIC_SITE_URL=http://127.0.0.1:3000` when using that address. Origin validation intentionally requires the configured origin to match the browser URL.
+Open **http://127.0.0.1:3000** and set `NEXT_PUBLIC_SITE_URL=http://127.0.0.1:3000` in `.env.local`. The configured origin must match the address used in the browser.
 
-Without credentials, marketing content and the full assessment/results journey work. Results are retained in the current browser tab. Assessment persistence is explicitly marked unavailable; consultation requests report that they were **not sent**. The admin login explains missing configuration. There is no mock production success and no authentication bypass.
+### Try it without credentials
 
-## Structure
+Start at `/assessment`. Choose either a beginner or experienced path, go back and change an answer, and complete the questions. The assessment state is retained in the current browser tab. Persistence is unavailable without Supabase, and the email-request form returns an explicit not-sent message. `/admin` redirects to login; there is no demo authentication bypass.
 
-- `src/app/`: marketing pages, assessment, results, admin and server API routes
-- `src/components/`: editorial site shell, assessment wizard, results, forms and dashboard controls
-- `src/lib/`: adaptive question model, deterministic results, validation, authorization and request protection
-- `src/proxy.ts`: administrator session refresh; all private handlers also authorize independently
-- `supabase/migrations/001_initial.sql`: schema, RLS, allowlist, rate limits and transactional conversion events
-- `tests/`: branching, validation and real embedded PostgreSQL tests
-- `tests/e2e/`: desktop/mobile browser journeys and axe accessibility checks
-- `public/images/`: photographs reused from the supplied Maria Blair reference site
-- `docs/`: authoritative source documents, setup and validation notes
+Use fictional examples only. Do not enter client financial records, identifying client details, or account credentials.
 
-## Connect Supabase
+### Enable persistence and the consultant workspace
 
-1. Create a project and run `supabase/migrations/001_initial.sql` in its SQL editor.
-2. Populate `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and server-only `SUPABASE_SERVICE_ROLE_KEY`.
-3. Generate `SESSION_SECRET` with `openssl rand -hex 32` and place it in `.env.local`. Never commit it.
-4. Disable public sign-ups in Supabase Auth. Create Maria’s user in Supabase and set a strong password using the account recovery/admin flow.
-5. Add that user's UUID with `insert into public.administrators(user_id) values ('YOUR_AUTH_USER_UUID');` in the SQL editor. Knowing a password or creating an ordinary authenticated user does not grant dashboard access.
-6. Configure site/auth URLs and email delivery as appropriate. Visit `/admin/login`.
+1. Create a Supabase project and apply [`supabase/migrations/001_initial.sql`](supabase/migrations/001_initial.sql).
+2. Configure the variables below in an ignored local environment file or your deployment secret manager.
+3. Disable public sign-ups in Supabase Auth. Create an administrator account and add its Auth UUID to `public.administrators`.
+4. Configure authentication URLs for the intended environment and visit `/admin/login`.
 
-The browser never receives the service-role key. Anonymous clients have no read/write grants on application tables. Public submissions go through validated server routes. The signed HttpOnly cookie connects an assessment to a later consultation for 24 hours; there is no public record lookup API.
+| Variable | Purpose |
+| --- | --- |
+| `NEXT_PUBLIC_SITE_URL` | Canonical origin for request validation and site URLs. |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL. |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public Supabase client key, subject to database permissions. |
+| `SUPABASE_SERVICE_ROLE_KEY` | **Server-only** database credential. Never expose it in browser code. |
+| `SESSION_SECRET` | **Server-only**, at least 32 random characters, for signed assessment cookies. |
+| `PUBLIC_INDEXING` | Search-indexing opt-in; defaults off. This is not access control. |
 
-## OpenAI agenda generation
+Generate a signing secret with `openssl rand -hex 32`. Never commit `.env.local`, secrets, or production data. Run `npm run check:config` to check required setting presence without printing values; this does not verify external account access.
 
-Set server-only `OPENAI_API_KEY` and, if desired, `OPENAI_MODEL` (default `gpt-4.1-mini`). Generation uses the Responses API with `store:false` and a bounded output. Only validated fixed-choice assessment data is sent. Name, email and the free-text consultation inquiry are excluded. A request without a linked assessment can receive a manually written agenda. Generated drafts remain unreviewed until Maria edits/reviews and saves them.
+A signed HttpOnly cookie connects an assessment to a later request for 24 hours. No public record-lookup endpoint is provided.
 
-## Measurement and referrals
+## Code map
 
-`/assessment?ref=anna` uses the same assessment. First valid referral in a browser tab wins for that session; absent referral is `organic`. Source labels are restricted to 40 alphanumeric/underscore/hyphen characters. A linked assessment's stored source takes precedence over the lead form's value.
+```text
+src/app/                 Pages and server API routes
+src/components/          Site shell, assessment, request forms, admin controls
+src/lib/                 Assessment rules, validation, authorization, request safety
+src/proxy.ts             Administrator session refresh
+supabase/migrations/     Schema, RLS, allowlist, rate limits, conversion events
+tests/                   Assessment, database, request and security tests
+tests/e2e/               Desktop/mobile journeys and axe accessibility checks
+docs/                    Product context, deployment and earlier validation notes
+```
 
-`assessment_start` is recorded once per assessment request ID. `assessment_complete`, `consultation_request`, and `workshop_request` are database-triggered **after successful inserts**. Unique request IDs prevent duplicate lead conversions on retry. There are no ad pixels or contact details in the event table. Rate limits store short-lived HMAC hashes rather than raw IPs. On Cloudflare, only its trusted connecting-IP header is used; deployments behind other proxies need a trusted client-IP adaptation.
+Useful entry points: [question model](src/lib/assessment.ts), [assessment UI](src/components/assessment.tsx), [results/request UI](src/components/results.tsx), [administrator agenda handler](src/app/api/admin/agenda/route.ts), and [authorization](src/lib/supabase.ts).
 
-## Checks
+## Validation
 
 ```sh
 npm test
 npm run typecheck
 npm run build
-# Start local app in another terminal, then:
-npx playwright test --workers=2
+# With the local app running at http://127.0.0.1:3000:
+npm run test:e2e
+# Build the Cloudflare-compatible Worker bundle; does not deploy:
 npm run build:cloudflare
 ```
 
-Browser tests use installed Google Chrome. The PostgreSQL tests use PGlite in memory and create test-only Supabase role/auth stubs before applying the actual migration. They do not touch a real Supabase project.
+Unit and database tests use PGlite in memory, applying the migration with test-only Supabase role/auth stubs. They do not access a production project. Playwright expects installed Google Chrome and exercises desktop/mobile layouts, theme persistence, both assessment paths, unconfigured submissions and protected routes.
 
-## Private deployment preparation
+## Deployment and boundaries
 
-OpenNext builds `.open-next/worker.js` and static assets. `wrangler.jsonc` has `workers_dev:false`, `preview_urls:false` and **no public routes**. No deploy script is provided. See [deployment setup](docs/DEPLOYMENT.md) before uploading or assigning any route. The owner has explicitly withheld approval for public publication.
+Cloudflare packaging uses OpenNext. The checked-in `wrangler.jsonc` currently enables `workers_dev` and disables preview URLs; **do not assume it provides a private or Access-protected preview**. Confirm hosting, authentication, data handling and owner approval before any deployment. Local setup instructions above do not require a deployment.
 
-## Remaining production setup
+Some historical notes in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) and earlier planning documents describe an AI agenda-generation design and a private-only Worker configuration that no longer match the current code. Treat those parts as historical, not current configuration instructions. The current `.env.example`, route implementations and `wrangler.jsonc` are the implementation reference.
 
-Supabase project/keys and administrator account; OpenAI key; Cloudflare account and an Access-protected preview hostname; final domain; privacy contact and retention policy. Live Supabase login, network persistence and real OpenAI generation remain unverified until credentials are configured. No GitHub repository was created.
-
-No online payments, calendar booking, outbound lead emails, fabricated testimonials, certification claims or promised savings are included. Lead notifications, retention automation and additional customer research are sensible follow-ups after the core connected journey is verified.
-
-## Configuration readiness
-
-The chosen backend remains **Supabase**, with Cloudflare hosting. No D1 migration is planned and no access to `dating-goddess-db` is needed.
-
-Run `npm run check:config` to check required setting presence without printing credentials. A local ignored `.env.local` can hold these settings; never share or commit it. The existing local setup includes a generated session signing secret. Supply the Supabase project URL, anon key and service-role key, then OpenAI API key, using your local environment file or a secret manager. The migration and allowlist still need to be applied in that project's dashboard.
+Before production use, verify database migration and allowlist setup, session/cookie behavior on the actual host, request persistence and deduplication, administrator access boundaries, privacy/retention policy, and the manual follow-up process. This README does not certify live hosting or connected-service acceptance tests.
