@@ -4,6 +4,10 @@
 
 Next.js · React · TypeScript · Supabase · Cloudflare Workers
 
+**[Explore the live preview](https://ai-for-bookkeepers.mashablair.workers.dev)** · [Run locally](#run-locally)
+
+*The database is intentionally disconnected. Public pages and the assessment are available; requests are not saved or sent, and administrator access is unavailable.*
+
 This application turns a broad question, “How could AI help my bookkeeping practice?”, into a structured training conversation. Visitors follow an assessment tailored to their experience, request a personally reviewed assessment or training session, and the consultant reviews the answers and prepares workshop notes in a protected workspace.
 
 The project focuses on product-oriented front-end engineering: conditional form flows, clear feedback, accessible controls, server-side validation, and the connection between a public customer journey and an administrator’s workflow.

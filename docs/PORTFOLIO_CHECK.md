@@ -9,3 +9,16 @@
 - Live Supabase persistence, administrator sign-in, and follow-up delivery were not exercised. The README describes the implemented manual-review workflow, not automatic LLM reports.
 
 These results describe the checked revision and environment, not a guarantee about future deployments.
+
+## Live deployment verification
+
+Deployed November 18, 2026 to https://ai-for-bookkeepers.mashablair.workers.dev from application revision `34822c1`. Cloudflare version `60c5b53f-91cd-4788-9ee0-cd5ca03d896f` serves 100% of traffic.
+
+Supabase is intentionally disconnected. The release was built with empty public Supabase URL/key settings; no database was created or reconnected.
+
+- Eight public pages loaded successfully at desktop (1440 px) and mobile (390 px) widths without horizontal overflow.
+- Both beginner and experienced assessment paths completed on both viewport sizes.
+- Requests using fictional test inputs returned HTTP 503 and a clear “has not been sent” message, as expected without storage.
+- `/admin` redirected to `/admin/login`; cross-origin writes returned HTTP 403.
+- No browser exceptions or requests to Supabase were observed.
+- Request persistence, administrator sign-in, and follow-up delivery remain unavailable while the database is disconnected.
