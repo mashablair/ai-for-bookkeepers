@@ -12,9 +12,18 @@ The project focuses on product-oriented front-end engineering: conditional form 
 
 Built by **[Maria Blair](https://github.com/mashablair)** to connect a thoughtful customer-facing assessment with a practical consulting workflow.
 
-![Adaptive assessment with an accessible question flow and responsive editorial layout](docs/screenshots/assessment.jpg)
+<table>
+  <tr>
+    <th width="50%">Adaptive assessment</th>
+    <th width="50%">Admin dashboard · Dark mode</th>
+  </tr>
+  <tr>
+    <td align="center" valign="top"><a href="docs/screenshots/assessment.jpg"><img src="docs/screenshots/assessment.jpg" alt="Adaptive assessment with an accessible question flow and responsive editorial layout" height="320"></a></td>
+    <td align="center" valign="top"><a href="docs/screenshots/admin-dark.jpg"><img src="docs/screenshots/admin-dark.jpg" alt="Dark-mode consultant dashboard showing a fictional assessment request, lead status, and reviewed notes" height="320"></a></td>
+  </tr>
+</table>
 
-*Working local application, captured without client information or backend credentials.*
+*Assessment captured locally; admin dashboard captured from the deployed app in dark mode using fictional test data. Click either image to view full size.*
 
 [Try it locally](#try-it-without-credentials) · [Engineering highlights](#engineering-highlights) · [Verification notes](docs/PORTFOLIO_CHECK.md)
 
