@@ -8,6 +8,14 @@ This application turns a broad question, “How could AI help my bookkeeping pra
 
 The project focuses on product-oriented front-end engineering: conditional form flows, clear feedback, accessible controls, server-side validation, and the connection between a public customer journey and an administrator’s workflow.
 
+Built by **[Maria Blair](https://github.com/mashablair)** to connect a thoughtful customer-facing assessment with a practical consulting workflow.
+
+![Adaptive assessment with an accessible question flow and responsive editorial layout](docs/screenshots/assessment.jpg)
+
+*Working local application, captured without client information or backend credentials.*
+
+[Try it locally](#try-it-without-credentials) · [Engineering highlights](#engineering-highlights) · [Verification notes](docs/PORTFOLIO_CHECK.md)
+
 ## Explore the product
 
 | Area | What it does |
@@ -30,8 +38,6 @@ There is no online payment or calendar-booking flow. A form submission requests 
 - **Layered authorization:** Supabase Auth plus an administrator allowlist; private pages and API handlers authorize independently of session-refresh middleware.
 - **Protected request handling:** schema validation, origin checks, bounded request bodies, honeypot/timing checks, and rate limits. Anonymous clients have no direct application-table grants.
 - **Retry-aware measurement:** unique request IDs and database-triggered conversion events avoid counting form clicks or repeated submissions as new conversions.
-
-These are implementation features, not a claim of a completed independent security audit or accessibility certification.
 
 ## Run locally
 
