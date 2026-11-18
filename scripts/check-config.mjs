@@ -14,15 +14,9 @@ const checks = {
       return false;
     }
   },
-  NEXT_PUBLIC_SUPABASE_URL: (v) => {
-    try {
-      return new URL(v).protocol === "https:";
-    } catch {
-      return false;
-    }
-  },
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: (v) => !!v,
-  SUPABASE_SERVICE_ROLE_KEY: (v) => !!v,
+  ACCESS_ISSUER: (v) => {try {return /^https:\/\/[a-z0-9-]+\.cloudflareaccess\.com$/.test(v);} catch {return false;}},
+  ACCESS_AUD: (v) => !!v,
+  ADMIN_EMAIL: (v) => typeof v === 'string' && v.includes('@'),
   SESSION_SECRET: (v) => v?.length >= 32,
 };
 let missing = 0;

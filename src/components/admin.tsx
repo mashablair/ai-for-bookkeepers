@@ -1,53 +1,5 @@
 "use client";
 import { useState } from "react";
-export function Login() {
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  async function submit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setBusy(true);
-    setError("");
-    try {
-      const r = await fetch("/api/admin/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(Object.fromEntries(new FormData(e.currentTarget))),
-      });
-      const d = await r.json();
-      if (!r.ok) throw new Error(d.error);
-      location.href = "/admin";
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Unable to sign in.");
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <form onSubmit={submit}>
-      <label className="field">
-        Email
-        <input name="email" type="email" autoComplete="username" required />
-      </label>
-      <label className="field">
-        Password
-        <input
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-        />
-      </label>
-      {error && (
-        <p role="alert" className="error">
-          {error}
-        </p>
-      )}
-      <button className="button" disabled={busy}>
-        {busy ? "Signing in…" : "Sign in"}
-      </button>
-    </form>
-  );
-}
 export function LeadEditor({
   id,
   initialStatus,
@@ -81,7 +33,7 @@ export function LeadEditor({
           }),
         },
       );
-      const d = await r.json();
+      const d = (await r.json()) as { error?: string };
       if (!r.ok) throw new Error(d.error);
       setMessage("Changes saved.");
     } catch (e) {
@@ -154,8 +106,7 @@ export function Logout() {
     <button
       className="button outline"
       onClick={async () => {
-        await fetch("/api/admin/logout", { method: "POST" });
-        location.href = "/admin/login";
+        location.href = "/cdn-cgi/access/logout";
       }}
     >
       Sign out

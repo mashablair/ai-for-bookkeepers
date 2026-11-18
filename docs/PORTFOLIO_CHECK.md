@@ -1,3 +1,21 @@
+# D1 and Access verification — November 18, 2026
+
+This section supersedes the disconnected-database status in the historical checks below.
+
+- Dedicated D1 database created and migration applied; no Supabase project needed.
+- Production version `ca4fee87-bc1a-4725-991c-55fe0332909e` deployed successfully.
+- Live assessment saved; signed ownership cookie linked the request; replay created no duplicate lead.
+- Live Cloudflare Access sign-in succeeded using the owner's Cloudflare identity.
+- Both `/admin` and `/api/admin` have an owner-email Allow policy. Anonymous requests redirect to Access; public pages remain available.
+- Live browser: request appeared, status changed to Closed, reviewed notes saved; both persisted after reload.
+- One labeled fictional deployment-test request remains closed with a no-follow-up note.
+- Cross-origin writes returned HTTP 403. Local tests rejected forged, expired, wrong-issuer, wrong-audience and wrong-email tokens.
+- 14 unit/security/D1 tests passed, plus TypeScript, Next/OpenNext builds and local admin integration against the real page/API handlers.
+- Local integration uses an isolated signing key and local D1; no production authentication bypass exists.
+- Automatic email was not added. Reports and replies are still prepared and sent manually.
+
+## Historical verification before D1 migration
+
 # Portfolio verification — November 18, 2026
 
 - Unit/database tests: 16 passed.

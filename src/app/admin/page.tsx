@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { configured, requireAdmin } from "@/lib/supabase";
+import { configured, database } from "@/lib/database";
+import { requireAdmin } from "@/lib/access";
 import { LeadEditor, Logout } from "@/components/admin";
 import { Answers, results } from "@/lib/assessment";
 export default async function Page({
@@ -8,31 +9,67 @@ export default async function Page({
   searchParams: Promise<{ ref?: string; page?: string }>;
 }) {
   if (!configured()) redirect("/admin/login");
-  let auth;
+
   try {
-    auth = await requireAdmin();
+    await requireAdmin();
   } catch {
     redirect("/admin/login");
   }
   const { ref, page } = await searchParams;
   const pageNum = Math.max(1, Number(page) || 1);
   const start = (pageNum - 1) * 20;
-  let query = auth.client
-    .from("leads")
-    .select("*,assessments(answers,summary),agendas(content,reviewed)", {
-      count: "exact",
-    })
-    .order("created_at", { ascending: false })
-    .range(start, start + 19);
-  if (ref) query = query.eq("referral", ref.slice(0, 40));
-  const { data: leads, error, count } = await query;
-  let aq = auth.client
-    .from("assessments")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .range(start, start + 19);
-  if (ref) aq = aq.eq("referral", ref.slice(0, 40));
-  const { data: assessments, error: assessmentError } = await aq;
+  const db = database();
+  const source = ref?.slice(0, 40) || null;
+  type AssessmentRow = {
+    id: string;
+    created_at: string;
+    referral: string;
+    answers: string;
+  };
+  type LeadRow = {
+    id: string;
+    created_at: string;
+    name: string;
+    email: string;
+    practice: string;
+    format: string;
+    priorities: string;
+    referral: string;
+    status: string;
+    answers: string | null;
+    content: string | null;
+    reviewed: number | null;
+  };
+  const leadRows = await db
+    .prepare(
+      "SELECT l.*,a.answers,g.content,g.reviewed FROM leads l LEFT JOIN assessments a ON a.id=l.assessment_id LEFT JOIN agendas g ON g.lead_id=l.id WHERE (? IS NULL OR l.referral=?) ORDER BY l.created_at DESC LIMIT 20 OFFSET ?",
+    )
+    .bind(source, source, start)
+    .all<LeadRow>();
+  const leads = leadRows.results.map((l) => ({
+    ...l,
+    assessments: l.answers
+      ? { answers: JSON.parse(l.answers) as Answers }
+      : null,
+    agendas: { content: l.content, reviewed: l.reviewed === 1 },
+  }));
+  const assessmentRows = await db
+    .prepare(
+      "SELECT * FROM assessments WHERE (? IS NULL OR referral=?) ORDER BY created_at DESC LIMIT 20 OFFSET ?",
+    )
+    .bind(source, source, start)
+    .all<AssessmentRow>();
+  const assessments = assessmentRows.results.map((a) => ({
+    ...a,
+    answers: JSON.parse(a.answers) as Answers,
+  }));
+  const total = await db
+    .prepare(
+      "SELECT count(*) AS count FROM leads WHERE (? IS NULL OR referral=?)",
+    )
+    .bind(source, source)
+    .first<{ count: number }>();
+  const count = total?.count || 0;
   return (
     <div className="wrap">
       <div className="actions" style={{ justifyContent: "space-between" }}>
@@ -57,11 +94,6 @@ export default async function Page({
           <a href="/admin">Clear</a>
         </div>
       </form>
-      {(error || assessmentError) && (
-        <p role="alert" className="error">
-          Could not load records. Check database setup and permissions.
-        </p>
-      )}
       <h2>Requests</h2>
       {!leads?.length && <p>No requests for this view.</p>}
       <div className="admin-grid">
@@ -102,16 +134,8 @@ export default async function Page({
             <LeadEditor
               id={lead.id}
               initialStatus={lead.status}
-              initialAgenda={
-                (Array.isArray(lead.agendas)
-                  ? lead.agendas[0]?.content
-                  : lead.agendas?.content) || ""
-              }
-              initialReviewed={
-                (Array.isArray(lead.agendas)
-                  ? lead.agendas[0]?.reviewed
-                  : lead.agendas?.reviewed) || false
-              }
+              initialAgenda={lead.agendas.content || ""}
+              initialReviewed={lead.agendas.reviewed || false}
             />
           </article>
         ))}

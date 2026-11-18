@@ -1,103 +1,63 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { PGlite } from "@electric-sql/pglite";
+import { Miniflare, convertV4MiniflareOptions } from "miniflare";
 import { readFileSync } from "node:fs";
-test("migration, real PostgreSQL RLS, persistence, attribution and transactional conversions", async () => {
-  const db = new PGlite();
+test("D1 saves linked requests, deduplicates conversions, enforces constraints, and persists admin edits", async () => {
+  const mf = new Miniflare(
+    convertV4MiniflareOptions({
+      modules: true,
+      script: 'export default {fetch(){return new Response("ok")}}',
+      compatibilityDate: "2026-10-28",
+      d1Databases: ["DB"],
+    }),
+  );
   try {
-    await db.exec(
-      `create role anon;create role authenticated;create role service_role bypassrls;create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to authenticated;grant execute on function auth.uid() to authenticated;`,
-    );
-    await db.exec(readFileSync("supabase/migrations/001_initial.sql", "utf8"));
-    const admin = "11111111-1111-4111-8111-111111111111",
-      other = "22222222-2222-4222-8222-222222222222";
-    await db.query("insert into auth.users values ($1),($2)", [admin, other]);
-    await db.query("insert into public.administrators values ($1)", [admin]);
-    const a = await db.query<{ id: string }>(
-      `insert into public.assessments(request_id,answers,summary,referral) values(gen_random_uuid(),'{}','{}','anna') returning id`,
-    );
-    const lead = await db.query<{ id: string }>(
-      `insert into public.leads(request_id,name,email,practice,format,priorities,consent_at,referral,assessment_id) values(gen_random_uuid(),'Fixture','fixture@example.invalid','Independent bookkeeper','Team workshop','Fictional testing',now(),'anna',$1) returning id`,
-      [a.rows[0].id],
+    const db = await mf.getD1Database("DB");
+    const sql = readFileSync("migrations/0001_initial.sql", "utf8");
+    // Each migration statement is on its own line, including complete triggers.
+    for (const line of sql.trim().split("\n")) await db.prepare(line).run();
+    await db
+      .prepare(
+        "INSERT INTO assessments(id,request_id,answers,summary,referral) VALUES('a','r','{}','{}','test')",
+      )
+      .run();
+    const insert =
+      "INSERT INTO leads(id,request_id,name,email,practice,format,priorities,consent_at,referral,assessment_id) VALUES('l','q','Test','test@example.invalid','Demo','Free assessment','Testing','2026-11-18','test','a') ON CONFLICT(request_id) DO NOTHING";
+    await db.prepare(insert).run();
+    await db.prepare(insert).run();
+    assert.equal(
+      await db.prepare("SELECT count(*) FROM leads").first("count(*)"),
+      1,
     );
     assert.equal(
-      (await db.query("select * from public.events")).rows.length,
+      await db.prepare("SELECT count(*) FROM events").first("count(*)"),
       2,
     );
-    assert.equal(
-      (
-        await db.query<{ event: string }>(
-          "select event from public.events where event='workshop_request'",
-        )
-      ).rows.length,
-      1,
-    );
-    await db.query(
-      `insert into public.leads(request_id,name,email,practice,format,priorities,consent_at,referral) values(gen_random_uuid(),'Reader','reader@example.invalid','Not provided','Free assessment','Please send the free assessment.',now(),'organic')`,
-    );
-    assert.equal(
-      (
-        await db.query<{ event: string }>(
-          "select event from public.events where event='assessment_delivery'",
-        )
-      ).rows.length,
-      1,
-    );
-    await db.exec("set role anon");
+    await assert.rejects(db.prepare("UPDATE leads SET status='Invalid'").run());
+    await db.prepare("UPDATE leads SET status='Contacted' WHERE id='l'").run();
+    await db
+      .prepare(
+        "INSERT INTO agendas(lead_id,content,reviewed,updated_at) VALUES('l','Reviewed test note',1,'2026-11-18')",
+      )
+      .run();
+    const row = await db
+      .prepare(
+        "SELECT status,content,reviewed FROM leads JOIN agendas ON leads.id=agendas.lead_id",
+      )
+      .first();
+    assert.deepEqual(row, {
+      status: "Contacted",
+      content: "Reviewed test note",
+      reviewed: 1,
+    });
     await assert.rejects(
-      () => db.query("select * from public.leads"),
-      /permission denied/,
+      db.prepare("INSERT INTO agendas VALUES('missing','no',0,'today')").run(),
     );
-    await assert.rejects(
-      () => db.query("select * from public.assessments"),
-      /permission denied/,
-    );
-    await db.exec("reset role;set role authenticated");
-    await db.query("select set_config('request.jwt.claim.sub',$1,false)", [
-      other,
-    ]);
-    assert.equal((await db.query("select * from public.leads")).rows.length, 0);
-    assert.equal(
-      (await db.query("select * from public.assessments")).rows.length,
-      0,
-    );
-    await assert.rejects(
-      () => db.query("insert into public.administrators values(auth.uid())"),
-      /permission denied/,
-    );
-    await db.query("select set_config('request.jwt.claim.sub',$1,false)", [
-      admin,
-    ]);
-    assert.equal((await db.query("select * from public.leads")).rows.length, 2);
-    await db.query("update public.leads set status='Contacted' where id=$1", [
-      lead.rows[0].id,
-    ]);
-    await db.query(
-      "insert into public.agendas(lead_id,content) values($1,'DRAFT test agenda')",
-      [lead.rows[0].id],
-    );
-    assert.equal(
-      (await db.query("select * from public.agendas")).rows.length,
-      1,
-    );
-    await db.exec("reset role");
-    assert.equal(
-      (await db.query("select * from public.events")).rows.length,
-      3,
-    );
-    const limit = await db.query<{ allowed: boolean }>(
-      "select public.take_rate_limit('test',1) as allowed",
-    );
-    assert(limit.rows[0].allowed);
-    assert.equal(
-      (
-        await db.query<{ allowed: boolean }>(
-          "select public.take_rate_limit('test',1) as allowed",
-        )
-      ).rows[0].allowed,
-      false,
-    );
+    const limit =
+      "INSERT INTO rate_limits(key,count,created_at) VALUES('k',1,1) ON CONFLICT(key) DO UPDATE SET count=count+1 RETURNING count";
+    assert.equal(await db.prepare(limit).first("count"), 1);
+    assert.equal(await db.prepare(limit).first("count"), 2);
   } finally {
-    await db.close();
+    await mf.dispose();
   }
 });

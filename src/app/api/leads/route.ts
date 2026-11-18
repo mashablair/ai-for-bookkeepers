@@ -1,4 +1,4 @@
-import { configured, database } from "@/lib/supabase";
+import { configured, database } from "@/lib/database";
 import { body, checkOrigin, assessmentOwner } from "@/lib/security";
 import { deliverySchema, leadSchema } from "@/lib/validation";
 import { z } from "zod";
@@ -33,29 +33,30 @@ export async function POST(request: Request) {
     let assessmentId = await assessmentOwner();
     let source = referral(input.referral);
     if (assessmentId) {
-      const { data, error: lookupError } = await db
-        .from("assessments")
-        .select("referral")
-        .eq("id", assessmentId)
-        .single();
-      if (lookupError && lookupError.code !== "PGRST116") throw lookupError;
+      const data = await db
+        .prepare("SELECT referral FROM assessments WHERE id=?")
+        .bind(assessmentId)
+        .first<{ referral: string }>();
       if (data) source = data.referral;
       else assessmentId = null;
     }
-    const { error } = await db.from("leads").insert({
-      name: input.name,
-      email: input.email,
-      practice: delivery ? "Not provided" : input.practice,
-      format: delivery ? "Free assessment" : input.format,
-      priorities: delivery
-        ? "Please send the free assessment."
-        : input.priorities,
-      consent_at: new Date().toISOString(),
-      referral: source,
-      assessment_id: assessmentId,
-      request_id: input.requestId,
-    });
-    if (error && error.code !== "23505") throw error;
+    await db
+      .prepare(
+        "INSERT INTO leads(id,request_id,name,email,practice,format,priorities,consent_at,referral,assessment_id) VALUES(?,?,?,?,?,?,?,?,?,?) ON CONFLICT(request_id) DO NOTHING",
+      )
+      .bind(
+        crypto.randomUUID(),
+        input.requestId,
+        input.name,
+        input.email,
+        delivery ? "Not provided" : input.practice,
+        delivery ? "Free assessment" : input.format,
+        delivery ? "Please send the free assessment." : input.priorities,
+        new Date().toISOString(),
+        source,
+        assessmentId,
+      )
+      .run();
     return Response.json({ ok: true });
   } catch (e) {
     return failure(e);

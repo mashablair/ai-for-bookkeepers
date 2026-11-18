@@ -1,1 +1,37 @@
-{"name":"ai-for-bookkeepers","main":".open-next/worker.js","compatibility_date":"2026-10-28","compatibility_flags":["nodejs_compat"],"workers_dev":true,"preview_urls":false,"assets":{"directory":".open-next/assets","binding":"ASSETS"},"services":[{"binding":"WORKER_SELF_REFERENCE","service":"ai-for-bookkeepers"}]}
+{
+  "name": "ai-for-bookkeepers",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-28",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "workers_dev": true,
+  "preview_urls": false,
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "ai-for-bookkeepers"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ai-for-bookkeepers",
+      "database_id": "a15bf217-6301-47a4-9693-77bdb26e3f8a",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "NEXT_PUBLIC_SITE_URL": "https://ai-for-bookkeepers.mashablair.workers.dev",
+    "ACCESS_ISSUER": "https://snowy-lab-7be3.cloudflareaccess.com",
+    "ACCESS_AUD": "70597ad9b7f3e7d49d4355b3861613165fc10ffe63f33cadf6499b2ce3557eb1",
+    "PUBLIC_INDEXING": "false"
+  }
+}

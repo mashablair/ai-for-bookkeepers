@@ -35,7 +35,7 @@ export function ContactForm() {
           referral: source,
         }),
       });
-      const data = await response.json();
+      const data = (await response.json()) as {error?: string; saved?: boolean};
       if (!response.ok) throw new Error(data.error);
       setSuccess(true);
     } catch (e) {

@@ -1,17 +1,23 @@
 import "server-only";
-import { database } from "./supabase";
+import { database } from "./database";
 import { createHmac } from "node:crypto";
 export async function rateLimit(request: Request, kind: string, limit = 10) {
   const ip = request.headers.get("cf-connecting-ip") || "local";
   const key = createHmac("sha256", process.env.SESSION_SECRET!)
     .update(`${kind}:${ip}:${Math.floor(Date.now() / 3600000)}`)
     .digest("hex");
-  const { data, error } = await database().rpc("take_rate_limit", {
-    p_key: key,
-    p_limit: limit,
-  });
-  if (error) throw new Error("Storage unavailable");
-  if (!data) throw new Error("RATE");
+  const db = database();
+  const entries = await db.batch<{ count: number }>([
+    db
+      .prepare(
+        "INSERT INTO rate_limits(key,count,created_at) VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET count=count+1 RETURNING count",
+      )
+      .bind(key, Date.now()),
+    db
+      .prepare("DELETE FROM rate_limits WHERE created_at < ?")
+      .bind(Date.now() - 7200000),
+  ]);
+  if (Number(entries[0].results[0]?.count) > limit) throw new Error("RATE");
 }
 export function failure(error: unknown) {
   const msg = error instanceof Error ? error.message : "";

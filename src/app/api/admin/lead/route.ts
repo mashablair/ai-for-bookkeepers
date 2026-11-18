@@ -1,11 +1,12 @@
-import { requireAdmin } from "@/lib/supabase";
+import { database } from "@/lib/database";
+import { requireAdmin } from "@/lib/access";
 import { body, checkOrigin } from "@/lib/security";
 import { failure } from "@/lib/api";
 import { z } from "zod";
 export async function POST(request: Request) {
   try {
     checkOrigin(request);
-    const { client } = await requireAdmin();
+    await requireAdmin();
     const input = z
       .object({
         id: z.uuid(),
@@ -18,13 +19,11 @@ export async function POST(request: Request) {
         ]),
       })
       .parse(await body(request));
-    const { data, error } = await client
-      .from("leads")
-      .update({ status: input.status })
-      .eq("id", input.id)
-      .select("id")
-      .single();
-    if (error || !data) throw new Error("SAVE");
+    const saved = await database()
+      .prepare("UPDATE leads SET status=? WHERE id=? RETURNING id")
+      .bind(input.status, input.id)
+      .first();
+    if (!saved) throw new Error("SAVE");
     return Response.json({ ok: true });
   } catch (e) {
     return failure(e);

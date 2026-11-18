@@ -2,11 +2,9 @@
 
 **An adaptive skills assessment and consultant workspace for practical AI training.**
 
-Next.js · React · TypeScript · Supabase · Cloudflare Workers
+Next.js · React · TypeScript · Cloudflare D1 · Cloudflare Access · Workers
 
-**[Explore the live preview](https://ai-for-bookkeepers.mashablair.workers.dev)** · [Run locally](#run-locally)
-
-*The database is intentionally disconnected. Public pages and the assessment are available; requests are not saved or sent, and administrator access is unavailable.*
+**[Explore the live app](https://ai-for-bookkeepers.mashablair.workers.dev)** · [Run locally](#run-locally)
 
 This application turns a broad question, “How could AI help my bookkeeping practice?”, into a structured training conversation. Visitors follow an assessment tailored to their experience, request a personally reviewed assessment or training session, and the consultant reviews the answers and prepares workshop notes in a protected workspace.
 
@@ -39,8 +37,8 @@ There is no online payment or calendar-booking flow. A form submission requests 
 - **One conditional question model:** the UI and server use shared assessment rules, including removal of stale answers when the visitor changes their path.
 - **Accessible interaction design:** semantic fieldsets and controls, focus movement between questions, visible errors and progress, responsive layouts, and browser tests with axe checks.
 - **Explicit failure states:** without backend configuration, a visitor can explore the assessment, but contact submissions report that they were not sent rather than displaying a false success.
-- **Layered authorization:** Supabase Auth plus an administrator allowlist; private pages and API handlers authorize independently of session-refresh middleware.
-- **Protected request handling:** schema validation, origin checks, bounded request bodies, honeypot/timing checks, and rate limits. Anonymous clients have no direct application-table grants.
+- **Layered authorization:** Cloudflare Access plus server-side verification of JWT signature, issuer, audience, expiration, and the authorized administrator email.
+- **Protected request handling:** schema validation, origin checks, bounded request bodies, honeypot/timing checks, and rate limits. The database is accessed only through a server-side D1 binding.
 - **Retry-aware measurement:** unique request IDs and database-triggered conversion events avoid counting form clicks or repeated submissions as new conversions.
 
 ## Run locally
@@ -57,25 +55,25 @@ Open **http://127.0.0.1:3000** and set `NEXT_PUBLIC_SITE_URL=http://127.0.0.1:30
 
 ### Try it without credentials
 
-Start at `/assessment`. Choose either a beginner or experienced path, go back and change an answer, and complete the questions. The assessment state is retained in the current browser tab. Persistence is unavailable without Supabase, and the email-request form returns an explicit not-sent message. `/admin` redirects to login; there is no demo authentication bypass.
+Start at `/assessment`. Choose either a beginner or experienced path, go back and change an answer, and complete the questions. The assessment state is retained in the current browser tab. Persistence requires a D1 binding and a signing secret, and the email-request form returns an explicit not-sent message. `/admin` redirects to login; there is no demo authentication bypass.
 
 Use fictional examples only. Do not enter client financial records, identifying client details, or account credentials.
 
 ### Enable persistence and the consultant workspace
 
-1. Create a Supabase project and apply [`supabase/migrations/001_initial.sql`](supabase/migrations/001_initial.sql).
-2. Configure the variables below in an ignored local environment file or your deployment secret manager.
-3. Disable public sign-ups in Supabase Auth. Create an administrator account and add its Auth UUID to `public.administrators`.
-4. Configure authentication URLs for the intended environment and visit `/admin/login`.
+1. Bind a dedicated D1 database as `DB` in `wrangler.jsonc` and apply `migrations/0001_initial.sql` with `wrangler d1 migrations apply ai-for-bookkeepers --local` (or `--remote` for deployment).
+2. Configure a random `SESSION_SECRET` of at least 32 characters. Local D1 is automatically available through OpenNext during `npm run dev`.
+3. Protect both `/admin` and `/api/admin` with one Cloudflare Access application, using an Allow policy for the owner's email only. Leave public assessment and contact routes outside Access.
+4. Set `ACCESS_ISSUER` to the team's HTTPS Access origin, `ACCESS_AUD` to the application audience, and `ADMIN_EMAIL` to the permitted email. Every private data route validates the signed identity independently.
 
 | Variable | Purpose |
 | --- | --- |
 | `NEXT_PUBLIC_SITE_URL` | Canonical origin for request validation and site URLs. |
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL. |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public Supabase client key, subject to database permissions. |
-| `SUPABASE_SERVICE_ROLE_KEY` | **Server-only** database credential. Never expose it in browser code. |
-| `SESSION_SECRET` | **Server-only**, at least 32 random characters, for signed assessment cookies. |
-| `PUBLIC_INDEXING` | Search-indexing opt-in; defaults off. This is not access control. |
+| `SESSION_SECRET` | Server-only signing secret for assessment cookies. |
+| `ACCESS_ISSUER` | Expected Cloudflare Access team origin. |
+| `ACCESS_AUD` | Expected Access application audience. |
+| `ADMIN_EMAIL` | Explicit authorized administrator email. |
+| `PUBLIC_INDEXING` | Search-indexing opt-in; defaults off. |
 
 Generate a signing secret with `openssl rand -hex 32`. Never commit `.env.local`, secrets, or production data. Run `npm run check:config` to check required setting presence without printing values; this does not verify external account access.
 
@@ -87,14 +85,14 @@ A signed HttpOnly cookie connects an assessment to a later request for 24 hours.
 src/app/                 Pages and server API routes
 src/components/          Site shell, assessment, request forms, admin controls
 src/lib/                 Assessment rules, validation, authorization, request safety
-src/proxy.ts             Administrator session refresh
-supabase/migrations/     Schema, RLS, allowlist, rate limits, conversion events
+src/proxy.ts             Private response cache controls
+migrations/              D1 schema, constraints, indexes and conversion triggers
 tests/                   Assessment, database, request and security tests
 tests/e2e/               Desktop/mobile journeys and axe accessibility checks
 docs/                    Product context, deployment and earlier validation notes
 ```
 
-Useful entry points: [question model](src/lib/assessment.ts), [assessment UI](src/components/assessment.tsx), [results/request UI](src/components/results.tsx), [administrator agenda handler](src/app/api/admin/agenda/route.ts), and [authorization](src/lib/supabase.ts).
+Useful entry points: [question model](src/lib/assessment.ts), [assessment UI](src/components/assessment.tsx), [results/request UI](src/components/results.tsx), [administrator agenda handler](src/app/api/admin/agenda/route.ts), and [authorization](src/lib/access.ts).
 
 ## Validation
 
@@ -108,12 +106,12 @@ npm run test:e2e
 npm run build:cloudflare
 ```
 
-Unit and database tests use PGlite in memory, applying the migration with test-only Supabase role/auth stubs. They do not access a production project. Playwright expects installed Google Chrome and exercises desktop/mobile layouts, theme persistence, both assessment paths, unconfigured submissions and protected routes.
+Unit tests cover assessment rules, request validation, signed ownership cookies and Access JWT rejection cases. Database integration tests run the actual D1 migration in Miniflare and check linked requests, deduplication, conversion triggers, foreign keys and admin edits. `node scripts/test-admin-integration.mjs` exercises the real Next.js admin page and APIs against local D1 with an isolated test issuer; it creates no production authentication bypass.
 
 ## Deployment and boundaries
 
-Cloudflare packaging uses OpenNext. The checked-in `wrangler.jsonc` currently enables `workers_dev` and disables preview URLs; **do not assume it provides a private or Access-protected preview**. Confirm hosting, authentication, data handling and owner approval before any deployment. Local setup instructions above do not require a deployment.
+Cloudflare packaging uses OpenNext. Deploy with `npm run build:cloudflare` followed by `wrangler deploy --keep-vars`. Apply migrations before deploying code that needs them. Preserve Access configuration and verify both private paths after deployment.
 
-Some historical notes in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) and earlier planning documents describe an AI agenda-generation design and a private-only Worker configuration that no longer match the current code. Treat those parts as historical, not current configuration instructions. The current `.env.example`, route implementations and `wrangler.jsonc` are the implementation reference.
+The public application accepts assessment and consultation requests. Reports and replies are prepared and sent manually. Historical Supabase migrations and older deployment plans are retained for reference; current infrastructure is D1 and Access. No additional Supabase project is needed.
 
-Before production use, verify database migration and allowlist setup, session/cookie behavior on the actual host, request persistence and deduplication, administrator access boundaries, privacy/retention policy, and the manual follow-up process. This README does not certify live hosting or connected-service acceptance tests.
+See [verification notes](docs/PORTFOLIO_CHECK.md) for tested behavior and deployment status.

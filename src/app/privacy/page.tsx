@@ -34,7 +34,7 @@ export default function Page() {
       </p>
       <h2>Storage and service providers</h2>
       <p>
-        The configured service uses Supabase for database storage and
+        The configured service uses Cloudflare D1 for database storage and Cloudflare Access for
         administrator authentication, and Cloudflare for hosting when deployed.
         Maria sends the free assessment herself. Your answers are not sent to
         an AI service to generate it.

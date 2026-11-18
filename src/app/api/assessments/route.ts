@@ -1,4 +1,4 @@
-import { configured, database } from "@/lib/supabase";
+import { configured, database } from "@/lib/database";
 import { body, checkOrigin, setAssessmentCookie } from "@/lib/security";
 import { assessmentSchema } from "@/lib/validation";
 import {
@@ -22,22 +22,23 @@ export async function POST(request: Request) {
       return Response.json({ saved: false, results: results(answers) });
     await rateLimit(request, "assessment", 20);
     const db = database();
-    const { data, error } = await db
-      .from("assessments")
-      .insert({
-        answers,
-        summary: results(answers),
-        referral: referral(input.referral),
-        request_id: input.requestId,
-      })
-      .select("id")
-      .single();
-    if (error) {
-      if (error.code === "23505")
-        return Response.json({ saved: false, results: results(answers) });
-      throw error;
-    }
-    await setAssessmentCookie(data.id);
+    const id = crypto.randomUUID();
+    const inserted = await db
+      .prepare(
+        "INSERT INTO assessments(id,request_id,answers,summary,referral) VALUES(?,?,?,?,?) ON CONFLICT(request_id) DO NOTHING RETURNING id",
+      )
+      .bind(
+        id,
+        input.requestId,
+        JSON.stringify(answers),
+        JSON.stringify(results(answers)),
+        referral(input.referral),
+      )
+      .first<{ id: string }>();
+    // A replay must never grant ownership of another visitor's assessment.
+    if (!inserted)
+      return Response.json({ saved: false, results: results(answers) });
+    await setAssessmentCookie(inserted.id);
     return Response.json({ saved: true, results: results(answers) });
   } catch (e) {
     return failure(e);

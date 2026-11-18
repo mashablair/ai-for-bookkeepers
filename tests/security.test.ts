@@ -1,31 +1,49 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-const sql = readFileSync("supabase/migrations/001_initial.sql", "utf8");
-test("every data table enables RLS", () => {
-  for (const table of [
-    "administrators",
-    "assessments",
-    "leads",
-    "agendas",
-    "events",
-    "rate_limits",
-  ])
-    assert(
-      sql.includes(`alter table public.${table} enable row level security`),
-    );
-});
-test("public clients have no table grants or write policies", () => {
-  assert(sql.includes("from anon;"));
-  assert(!/create policy[^;]*to anon/.test(sql));
-  assert(
-    sql.includes(
-      "revoke all on function public.take_rate_limit(text,int) from public,anon,authenticated",
-    ),
+import { generateKeyPair, exportJWK, createLocalJWKSet, SignJWT } from "jose";
+import { verifyAdminToken } from "../src/lib/access-token";
+test("Access validates signature, expiration, issuer, audience, and explicit administrator email", async () => {
+  const { privateKey, publicKey } = await generateKeyPair("RS256");
+  const keys = createLocalJWKSet({ keys: [await exportJWK(publicKey)] });
+  const issuer = "https://test.cloudflareaccess.com",
+    aud = "test-app",
+    email = "owner@example.invalid";
+  async function token(overrides: Record<string, unknown> = {}) {
+    return new SignJWT({
+      email,
+      sub: "user",
+      iss: issuer,
+      aud,
+      exp: Math.floor(Date.now() / 1000) + 60,
+      ...overrides,
+    })
+      .setProtectedHeader({ alg: "RS256" })
+      .sign(privateKey);
+  }
+  assert.deepEqual(
+    await verifyAdminToken(await token(), keys, issuer, aud, email),
+    { email },
   );
-});
-test("conversions are triggered by committed inserts, not clicks", () => {
-  assert(sql.includes("after insert on public.assessments"));
-  assert(sql.includes("after insert on public.leads"));
-  assert(sql.includes("request_id uuid unique not null"));
+  for (const override of [
+    { email: "stranger@example.invalid" },
+    { iss: "https://other.example" },
+    { aud: "other-app" },
+    { exp: 1 },
+    { sub: "" },
+  ])
+    await assert.rejects(
+      verifyAdminToken(await token(override), keys, issuer, aud, email),
+    );
+  await assert.rejects(verifyAdminToken("forged", keys, issuer, aud, email));
+  const other = await generateKeyPair("RS256");
+  const forged = await new SignJWT({
+    email,
+    sub: "user",
+    iss: issuer,
+    aud,
+    exp: Math.floor(Date.now() / 1000) + 60,
+  })
+    .setProtectedHeader({ alg: "RS256" })
+    .sign(other.privateKey);
+  await assert.rejects(verifyAdminToken(forged, keys, issuer, aud, email));
 });

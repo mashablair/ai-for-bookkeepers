@@ -1,11 +1,9 @@
-import { authClient } from "@/lib/supabase";
 import { checkOrigin } from "@/lib/security";
 import { failure } from "@/lib/api";
 export async function POST(request: Request) {
   try {
     checkOrigin(request);
-    await (await authClient()).auth.signOut();
-    return Response.json({ ok: true });
+    return Response.json({ url: "/cdn-cgi/access/logout" });
   } catch (e) {
     return failure(e);
   }

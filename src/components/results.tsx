@@ -43,7 +43,7 @@ export function Results() {
           referral: source,
         }),
       });
-      const data = await response.json();
+      const data = (await response.json()) as {error?: string; saved?: boolean};
       if (!response.ok) throw new Error(data.error);
       setEmail(address);
       setSuccess(true);

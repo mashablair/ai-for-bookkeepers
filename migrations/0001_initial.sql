@@ -1,0 +1,11 @@
+CREATE TABLE assessments (id TEXT PRIMARY KEY, request_id TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), answers TEXT NOT NULL CHECK(json_valid(answers)), summary TEXT NOT NULL CHECK(json_valid(summary)), referral TEXT NOT NULL);
+CREATE TABLE leads (id TEXT PRIMARY KEY, request_id TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), name TEXT NOT NULL, email TEXT NOT NULL, practice TEXT NOT NULL, format TEXT NOT NULL, priorities TEXT NOT NULL, consent_at TEXT NOT NULL, referral TEXT NOT NULL, assessment_id TEXT REFERENCES assessments(id) ON DELETE SET NULL, status TEXT NOT NULL DEFAULT 'New' CHECK(status IN ('New','Contacted','Scheduled','Completed','Closed')));
+CREATE TABLE agendas (lead_id TEXT PRIMARY KEY REFERENCES leads(id) ON DELETE CASCADE, content TEXT NOT NULL, reviewed INTEGER NOT NULL DEFAULT 0 CHECK(reviewed IN (0,1)), updated_at TEXT NOT NULL);
+CREATE TABLE events (id TEXT PRIMARY KEY, created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), event TEXT NOT NULL CHECK(event IN ('assessment_start','assessment_complete','consultation_request','workshop_request','assessment_delivery')), referral TEXT NOT NULL);
+CREATE TABLE rate_limits (key TEXT PRIMARY KEY, count INTEGER NOT NULL DEFAULT 1, created_at INTEGER NOT NULL);
+CREATE INDEX leads_referral ON leads(referral,created_at DESC);
+CREATE INDEX leads_created ON leads(created_at DESC);
+CREATE INDEX assessments_created ON assessments(created_at DESC);
+CREATE INDEX rate_limits_created ON rate_limits(created_at);
+CREATE TRIGGER assessment_conversion AFTER INSERT ON assessments BEGIN INSERT INTO events(id,event,referral) VALUES(new.id,'assessment_complete',new.referral); END;
+CREATE TRIGGER lead_conversion AFTER INSERT ON leads BEGIN INSERT INTO events(id,event,referral) VALUES(new.id,CASE WHEN new.format='Team workshop' THEN 'workshop_request' WHEN new.format='Free assessment' THEN 'assessment_delivery' ELSE 'consultation_request' END,new.referral); END;
